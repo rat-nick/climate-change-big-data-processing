@@ -27,6 +27,7 @@ object DataPreparation {
       .withColumn("month", col("dt").substr(6,2).cast(IntegerType))
       .withColumn("year", col("dt").substr(1,4).cast(IntegerType))
       .select(col("temperature"), col("city"), col("country"), col("year"), col("month"), latlng2num(col("lat")) as "lat", latlng2num(col("lng")) as "lng")
+      .na.drop("any")
       .show(10)
     spark.stop()
   }
@@ -34,7 +35,7 @@ object DataPreparation {
 
 object Transforms {
   def latlng2num(s: String) : Float = {
-    if ( s.endsWith("N") || s.endsWith("W") ) {
+    if (s.endsWith("N") || s.endsWith("W")) {
       return s.dropRight(1).toFloat
     }
     else{ 
