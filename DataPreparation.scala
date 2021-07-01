@@ -38,17 +38,28 @@ object EmissionTemperatureDataPreparation {
     val emissionPath = "data/EmissionData.csv"
     val spark = SparkSession.builder.appName("Data Preparation").getOrCreate()
     spark.sparkContext.setLogLevel("OFF")
-
-    //data needs to be transposed
     
-    val emissionData = spark.read.format("csv")
+    val emissionsByYear = spark.read.format("csv")
       .option("header", true)
       .option("inferSchema", true)
       .load(emissionPath)
       .where("Country LIKE 'World'")
       .toDF().first().toSeq.toList.filter(x => x != "World")
       .map(x => x.toString().toFloat)
-        
+    
+    val globalTemperaturePath = "data/GlobalTemperatures.csv"
+    
+    val yearlyAverageTemperatures = spark.read.format("csv")
+      .option("header", true)
+      .option("inferSchema", true)
+      .load(globalTemperaturePath)
+      .withColumnRenamed("LandAverageTemperature", "temperature")
+      .select("dt", "temperature")
+      .na.drop("any")
+      .withColumn("month", col("dt").substr(6,2).cast(IntegerType))
+      .withColumn("year", col("dt").substr(1,4).cast(IntegerType))
+      .toDF().groupBy("year").avg("temperature")
+      .withColumnRenamed("avg(temperature)", "temperature").show()
   }
 }
 
