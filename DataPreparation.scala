@@ -44,8 +44,10 @@ object EmissionTemperatureDataPreparation {
       .option("inferSchema", true)
       .load(emissionPath)
       .where("Country LIKE 'World'")
-      .toDF().first().toSeq.toList.filter(x => x != "World")
-      .map(x => x.toString().toFloat)
+      .na.drop("any")
+      .toDF()
+      .first().toSeq.toList.filter(x => x != "World")
+      .map(x => x.toString().toFloat).dropRight(1)
     
     val globalTemperaturePath = "data/GlobalTemperatures.csv"
     
@@ -59,7 +61,21 @@ object EmissionTemperatureDataPreparation {
       .withColumn("month", col("dt").substr(6,2).cast(IntegerType))
       .withColumn("year", col("dt").substr(1,4).cast(IntegerType))
       .toDF().groupBy("year").avg("temperature")
-      .withColumnRenamed("avg(temperature)", "temperature").show()
+      .withColumnRenamed("avg(temperature)", "temperature")
+      .orderBy("year").select("temperature").rdd.map(_(0)).map(x => x.toString().toFloat).collect().toList
+    
+    val years : List[Int] = 1750 to 1750+265 toList
+    val emissions: List[Float] = emissionsByYear
+    val temperatures: List[Float] = yearlyAverageTemperatures  
+    
+    import spark.implicits._
+    
+    val yearlyEmissionTemperatureData = List(years, emissions, temperatures)
+      .transpose
+      .map{case List(a: Int,b: Float,c: Float) => (a,b,c)}
+      .toDF("year", "emission", "temperature")
+    
+    yearlyEmissionTemperatureData.show()
   }
 }
 
