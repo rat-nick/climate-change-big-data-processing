@@ -1,14 +1,15 @@
-
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.functions.udf
-object DataPreparation {
+
+object LatLngDataPreparation {
   def main(args: Array[String]) {
+    
     val csvPath = "data/GlobalLandTemperaturesByCity.csv" 
     val spark = SparkSession.builder.appName("Data Preparation").getOrCreate()
     
-    val data = spark.read.format("csv")
+    val cityData = spark.read.format("csv")
       .option("header", true)
       .option("inferSchema", true)
       .load(csvPath)
@@ -18,7 +19,7 @@ object DataPreparation {
       s"$numericCoord"
     })
 
-    val temperatureData = data
+    val cityTemperatureData = cityData
       .withColumnRenamed("City", "city")
       .withColumnRenamed("Country", "country")
       .withColumnRenamed("Latitude", "lat")
@@ -28,8 +29,26 @@ object DataPreparation {
       .withColumn("year", col("dt").substr(1,4).cast(IntegerType))
       .select(col("temperature"), col("city"), col("country"), col("year"), col("month"), latlng2num(col("lat")) as "lat", latlng2num(col("lng")) as "lng")
       .na.drop("any")
-      .show(10)
-    spark.stop()
+  }
+}
+
+object EmissionTemperatureDataPreparation {
+  def main(args: Array[String]) {
+    
+    val emissionPath = "data/EmissionData.csv"
+    val spark = SparkSession.builder.appName("Data Preparation").getOrCreate()
+    spark.sparkContext.setLogLevel("OFF")
+
+    //data needs to be transposed
+    
+    val emissionData = spark.read.format("csv")
+      .option("header", true)
+      .option("inferSchema", true)
+      .load(emissionPath)
+      .where("Country LIKE 'World'")
+      .toDF().first().toSeq.toList.filter(x => x != "World")
+      .map(x => x.toString().toFloat)
+        
   }
 }
 
