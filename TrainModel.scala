@@ -61,7 +61,8 @@ object TrainSpatioTemporalModel {
         
         val testSummary = model.evaluate(testSet)
         
-        testSummary.predictions.show()  
+        testSummary.predictions.show()
+        println(testSummary.rootMeanSquaredError)  
     }
 }
     
@@ -104,9 +105,10 @@ object TrainTemporalTemperatureEmissionModel {
         val model = lr.fit(trainSet)
         val trainingSummary = model.summary
         
-        val testSummary = model.evaluate(testSet)
-        
+        val testSummary = model.evaluate(testSet)        
         testSummary.predictions.show()  
+
+        println(testSummary.rootMeanSquaredError)
 
     }
 }
